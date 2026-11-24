@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101a35">
+  <title>AfrimarkIP Mail Assistant</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <style>
+    :root{font-family:Inter,system-ui,-apple-system,Arial,sans-serif;color:#172033;background:#f4f6fb}
+    *{box-sizing:border-box}body{margin:0}.top{background:#101a35;color:white;padding:24px 18px}
+    .wrap{max-width:900px;margin:auto}.top h1{font-size:24px;margin:0 0 6px}.top p{margin:0;color:#c8d2e7}
+    main{max-width:900px;margin:20px auto;padding:0 14px}.card{background:white;border:1px solid #e2e7f0;border-radius:16px;padding:18px;margin-bottom:16px;box-shadow:0 4px 18px #14213b0a}
+    h2{font-size:18px;margin:0 0 12px}.muted{color:#667085;font-size:14px;line-height:1.5}
+    button{border:0;border-radius:10px;padding:12px 16px;background:#2458d3;color:white;font-weight:650;font-size:15px;cursor:pointer;margin:4px 5px 4px 0}
+    button.secondary{background:#e9eefb;color:#173b8f}button:disabled{opacity:.55}
+    textarea{width:100%;min-height:150px;padding:12px;border:1px solid #ccd4e2;border-radius:10px;font:inherit;resize:vertical}
+    .status{padding:10px 12px;border-radius:10px;background:#f0f4ff;color:#23427e;margin:12px 0;font-size:14px}
+    pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#f7f8fb;padding:12px;border-radius:10px;font-size:13px}
+    .hidden{display:none}.warning{background:#fff7e8;color:#805400;border:1px solid #f4dfb5;padding:12px;border-radius:10px;font-size:13px}
+    @media(min-width:650px){.top{padding:30px}.top h1{font-size:29px}}
+  </style>
+</head>
+<body>
+<header class="top"><div class="wrap"><h1>AfrimarkIP Mail Assistant</h1><p>Understand client emails. Identify matter details. Prepare replies for review.</p></div></header>
+<main>
+  <section class="card">
+    <h2>Gmail connection</h2>
+    <p class="muted">This app requests read-only Gmail access. It cannot send, delete, archive, or modify emails.</p>
+    <div id="status" class="status">Checking connection…</div>
+    <button id="connect">Connect approved Google Workspace account</button>
+    <button id="refresh" class="secondary">Load recent emails</button>
+    <button id="disconnect" class="secondary">Disconnect</button>
+    <div id="emails"></div>
+  </section>
+  <section class="card">
+    <h2>Analyze an email</h2>
+    <p class="muted">For setup testing, use fictional or approved sample email text. Do not paste confidential client material until AfrimarkIP approves the service and data handling.</p>
+    <textarea id="emailText" placeholder="Paste a sample email here…"></textarea>
+    <button id="analyze">Extract matter details</button>
+    <div id="result"></div>
+  </section>
+  <p class="warning">Setup/demo version: add approved Google OAuth and AI credentials on the hosting server before use. Never place API keys in this page or in GitHub.</p>
+</main>
+<script>
+const statusBox=document.getElementById("status");
+async function check(){try{const r=await fetch("/api/status");const d=await r.json();statusBox.textContent=d.connected?"Google account connected.":"Not connected. "+(d.configured?"Ready for approved sign-in.":"Google OAuth setup is still required.");}catch(e){statusBox.textContent="App server is not ready yet.";}}
+document.getElementById("connect").onclick=()=>location.href="/auth/google";
+document.getElementById("refresh").onclick=async()=>{const box=document.getElementById("emails");box.textContent="Loading…";try{const r=await fetch("/api/emails");const d=await r.json();if(!r.ok)throw Error(d.error);box.innerHTML="";d.emails.forEach(m=>{const b=document.createElement("button");b.className="secondary";b.textContent=(m.subject||"(No subject)")+" — "+m.from;b.onclick=()=>document.getElementById("emailText").value="Subject: "+m.subject+"\nFrom: "+m.from+"\n\n"+m.body;box.appendChild(b);});if(!d.emails.length)box.textContent="No recent messages found.";}catch(e){box.textContent=e.message;}}
+document.getElementById("disconnect").onclick=async()=>{await fetch("/api/disconnect",{method:"POST"});check();};
+document.getElementById("analyze").onclick=async()=>{const out=document.getElementById("result");out.textContent="Analyzing…";try{const r=await fetch("/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({emailText:document.getElementById("emailText").value})});const d=await r.json();if(!r.ok)throw Error(d.error);out.innerHTML="";const pre=document.createElement("pre");pre.textContent=JSON.stringify(d.analysis,null,2);out.appendChild(pre);}catch(e){out.textContent=e.message;}};
+check();
+if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("/sw.js").catch(()=>{}));}
+</script>
+</body></html>

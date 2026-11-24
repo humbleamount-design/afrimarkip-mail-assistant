@@ -1,0 +1,8 @@
+{
+  "name": "AfrimarkIP Mail Assistant",
+  "short_name": "AfrimarkIP",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f4f6fb",
+  "theme_color": "#101a35"
+}
